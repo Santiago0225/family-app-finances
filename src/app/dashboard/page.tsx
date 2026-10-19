@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatCLP } from '@/lib/format'
 import type { Transaction } from '@/types/database'
+
+export const instant = false
 import LogoutButton from './LogoutButton'
 
 export default async function DashboardPage() {
