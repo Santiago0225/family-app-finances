@@ -13,22 +13,19 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name')
-    .eq('id', user.id)
-    .single()
-
   const { primerDia, ultimoDia, label } = getMonthRangeSantiago()
 
-  const { data: transactions } = await supabase
-    .from('transactions')
-    .select('*, subcategories(name, categories(name))')
-    .eq('user_id', user.id)
-    .eq('type', 'expense')
-    .gte('date', primerDia)
-    .lte('date', ultimoDia)
-    .order('date', { ascending: false })
+  const [{ data: profile }, { data: transactions }] = await Promise.all([
+    supabase.from('profiles').select('name').eq('id', user.id).single(),
+    supabase
+      .from('transactions')
+      .select('*, subcategories(name, categories(name))')
+      .eq('user_id', user.id)
+      .eq('type', 'expense')
+      .gte('date', primerDia)
+      .lte('date', ultimoDia)
+      .order('date', { ascending: false }),
+  ])
 
   const gastos = (transactions ?? []) as Transaction[]
   const total = gastos.reduce((sum, g) => sum + g.amount, 0)
@@ -42,7 +39,12 @@ export default async function DashboardPage() {
           </h1>
           <p className="text-sm text-gray-400 capitalize">{label}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-4">
+          <Link href="/perfil" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+            Perfil
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       <div className="max-w-lg mx-auto p-4 flex flex-col gap-4">

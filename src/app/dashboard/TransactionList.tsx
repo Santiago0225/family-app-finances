@@ -1,28 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatCLP } from '@/lib/format'
 import type { Transaction } from '@/types/database'
 
 export default function TransactionList({ gastos }: { gastos: Transaction[] }) {
-  const router = useRouter()
   const supabase = createClient()
   const [selected, setSelected] = useState<Transaction | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
 
-  function open(g: Transaction) { setSelected(g); setConfirmDelete(false) }
-  function close() { setSelected(null); setConfirmDelete(false) }
+  function open(g: Transaction) { setSelected(g); setConfirmDelete(false); setError('') }
+  function close() { setSelected(null); setConfirmDelete(false); setError('') }
 
   async function handleDelete() {
     if (!selected) return
     setDeleting(true)
-    await supabase.from('transactions').delete().eq('id', selected.id)
-    setDeleting(false)
-    close()
-    router.refresh()
+    setError('')
+    try {
+      const { error } = await supabase.from('transactions').delete().eq('id', selected.id)
+      if (error) throw error
+      window.location.href = '/dashboard'
+    } catch {
+      setError('No se pudo eliminar. Intenta de nuevo.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (gastos.length === 0) {
@@ -85,10 +90,12 @@ export default function TransactionList({ gastos }: { gastos: Transaction[] }) {
               <button onClick={close} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
             </div>
 
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
             {!confirmDelete ? (
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={() => { close(); router.push(`/gastos/${selected.id}/editar`) }}
+                  onClick={() => { window.location.href = `/gastos/${selected.id}/editar` }}
                   className="w-full py-3 bg-gray-100 text-gray-900 font-medium rounded-xl hover:bg-gray-200 transition-colors"
                 >
                   Editar
@@ -112,6 +119,7 @@ export default function TransactionList({ gastos }: { gastos: Transaction[] }) {
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
                   className="w-full py-3 text-gray-500 font-medium rounded-xl hover:bg-gray-100 transition-colors"
                 >
                   Cancelar

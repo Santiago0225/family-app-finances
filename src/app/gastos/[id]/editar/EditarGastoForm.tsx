@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatCLP, parseCLP, normalizeMerchant } from '@/lib/format'
 import type { Category, Subcategory, Transaction } from '@/types/database'
@@ -13,7 +12,6 @@ type Props = {
 }
 
 export default function EditarGastoForm({ transaction, categories, merchants }: Props) {
-  const router = useRouter()
   const supabase = createClient()
 
   const initialCategory = categories.find(c =>
@@ -43,20 +41,24 @@ export default function EditarGastoForm({ transaction, categories, merchants }: 
     if (!monto || monto <= 0) { setError('Ingresa un monto válido'); return }
 
     setGuardando(true)
-    const { error } = await supabase
-      .from('transactions')
-      .update({
-        date: fecha,
-        amount: monto,
-        description: descripcion,
-        merchant: normalizeMerchant(comercio),
-        subcategory_id: subcategoriaId || null,
-      })
-      .eq('id', transaction.id)
-
-    if (error) { setError('Error al guardar. Intenta de nuevo.'); setGuardando(false); return }
-    router.push('/dashboard')
-    router.refresh()
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          date: fecha,
+          amount: monto,
+          description: descripcion,
+          merchant: normalizeMerchant(comercio),
+          subcategory_id: subcategoriaId || null,
+        })
+        .eq('id', transaction.id)
+      if (error) throw error
+      window.location.href = '/dashboard'
+    } catch {
+      setError('Error al guardar. Intenta de nuevo.')
+    } finally {
+      setGuardando(false)
+    }
   }
 
   return (

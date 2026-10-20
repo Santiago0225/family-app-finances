@@ -101,6 +101,11 @@ export default function LoginPage() {
           >
             {cargando ? 'Cargando...' : modo === 'login' ? 'Entrar' : 'Crear cuenta'}
           </button>
+          {modo === 'login' && (
+            <a href="/recuperar-contrasena" className="text-sm text-gray-400 hover:text-gray-600 text-center">
+              ¿Olvidaste tu contraseña?
+            </a>
+          )}
         </form>
 
         <div className="flex items-center gap-3 my-4">
