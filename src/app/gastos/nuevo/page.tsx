@@ -10,11 +10,12 @@ export default async function NuevoGastoPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('*, subcategories(*)')
-    .eq('is_active', true)
-    .order('sort_order')
+  const [{ data: categories }, { data: merchantRows }] = await Promise.all([
+    supabase.from('categories').select('*, subcategories(*)').eq('is_active', true).order('sort_order'),
+    supabase.from('transactions').select('merchant').eq('user_id', user.id).neq('merchant', '').order('merchant'),
+  ])
+
+  const merchants = [...new Set((merchantRows ?? []).map(r => r.merchant).filter(Boolean))] as string[]
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -22,12 +23,8 @@ export default async function NuevoGastoPage() {
         <Link href="/dashboard" className="text-gray-400 hover:text-gray-600 text-xl">←</Link>
         <h1 className="text-lg font-semibold text-gray-900">Nuevo gasto</h1>
       </header>
-
       <div className="max-w-lg mx-auto p-4">
-        <NuevoGastoForm
-          categories={categories ?? []}
-          userId={user.id}
-        />
+        <NuevoGastoForm categories={categories ?? []} userId={user.id} merchants={merchants} />
       </div>
     </main>
   )

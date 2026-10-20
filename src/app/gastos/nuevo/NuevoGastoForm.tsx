@@ -3,20 +3,20 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { formatCLP, parseCLP } from '@/lib/format'
+import { formatCLP, parseCLP, getTodaySantiago, normalizeMerchant } from '@/lib/format'
 import type { Category, Subcategory } from '@/types/database'
 
 type Props = {
   categories: (Category & { subcategories: Subcategory[] })[]
   userId: string
+  merchants: string[]
 }
 
-export default function NuevoGastoForm({ categories, userId }: Props) {
+export default function NuevoGastoForm({ categories, userId, merchants }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
-  const today = new Date().toISOString().split('T')[0]
-  const [fecha, setFecha] = useState(today)
+  const [fecha, setFecha] = useState(getTodaySantiago())
   const [montoDisplay, setMontoDisplay] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [comercio, setComercio] = useState('')
@@ -32,11 +32,6 @@ export default function NuevoGastoForm({ categories, userId }: Props) {
     setMontoDisplay(raw > 0 ? formatCLP(raw) : '')
   }
 
-  function handleCategoria(id: string) {
-    setCategoriaId(id)
-    setSubcategoriaId('')
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -49,7 +44,7 @@ export default function NuevoGastoForm({ categories, userId }: Props) {
       date: fecha,
       amount: monto,
       description: descripcion,
-      merchant: comercio,
+      merchant: normalizeMerchant(comercio),
       subcategory_id: subcategoriaId || null,
       origin: 'manual',
       type: 'expense',
@@ -87,6 +82,21 @@ export default function NuevoGastoForm({ categories, userId }: Props) {
       </div>
 
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Comercio</label>
+        <input
+          type="text"
+          list="merchants-list"
+          placeholder="Ej: Uber, Líder, Copec"
+          value={comercio}
+          onChange={e => setComercio(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+        <datalist id="merchants-list">
+          {merchants.map(m => <option key={m} value={m} />)}
+        </datalist>
+      </div>
+
+      <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
         <input
           type="text"
@@ -98,27 +108,14 @@ export default function NuevoGastoForm({ categories, userId }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Comercio</label>
-        <input
-          type="text"
-          placeholder="Ej: Líder, Uber, Copec"
-          value={comercio}
-          onChange={e => setComercio(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-      </div>
-
-      <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
         <select
           value={categoriaId}
-          onChange={e => handleCategoria(e.target.value)}
+          onChange={e => { setCategoriaId(e.target.value); setSubcategoriaId('') }}
           className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
         >
           <option value="">Sin categoría</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
@@ -131,9 +128,7 @@ export default function NuevoGastoForm({ categories, userId }: Props) {
             className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
           >
             <option value="">Sin subcategoría</option>
-            {subcategorias.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
+            {subcategorias.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
       )}
